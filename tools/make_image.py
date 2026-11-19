@@ -4,10 +4,10 @@
 Deterministic: fixed RNG seed, no network, no clock.  Renders at 2x and
 downsamples to 1024x1024 so type and hairlines stay crisp.
 
-Twenty-nine stories, six continents, one day: three illustrated leads, a band of
-figures, eight briefs, a dotted world map with numbered datelines, eighteen
-one-line reports, and a date-check strip naming what was reported earlier and
-so is left out.
+Thirty-one stories, six continents, one day: three illustrated leads, a region
+tally, six figures, ten briefs, a dotted world map with thirteen numbered
+datelines, eighteen one-line reports, and a date-check strip naming what was
+reported earlier and so is left out.
 """
 import json
 import math
@@ -27,6 +27,23 @@ LIGHT = (203, 196, 183)
 TILE = (233, 227, 215)
 SEA = (216, 226, 233)
 FONT = "C:/Windows/Fonts/"
+
+GOLD = (183, 124, 30)
+GREEN = (32, 108, 84)
+TEAL = (26, 108, 116)
+PLUM = (104, 56, 104)
+
+REGIONS = {
+    "ASIA-PACIFIC": RED,
+    "EUROPE": BLUE,
+    "THE AMERICAS": GREEN,
+    "MIDDLE EAST": GOLD,
+    "AFRICA": PLUM,
+    "OCEANIA": TEAL,
+    "WORLD": GREY,
+}
+ORDER = ["EUROPE", "THE AMERICAS", "ASIA-PACIFIC", "MIDDLE EAST", "AFRICA",
+         "OCEANIA", "WORLD"]
 
 def f(name, size):
     return ImageFont.truetype(FONT + name, int(size * S))
@@ -84,267 +101,314 @@ def para(x, y, s, font, maxw, fill=INK, lead=1.22):
         text(x, y + i * lh, ln, font, fill)
     return y + len(lines) * lh
 
+def tint(col, k=0.86):
+    return tuple(int(c + (255 - c) * k) for c in col)
+
+# ---------------------------------------------------------------- stories
+heroes = [
+    ("1", "ASIA-PACIFIC", "SHENZHEN · SUMMIT",
+     "Trump, Xi and Putin hold a first three-way summit",
+     "The three nuclear powers sit down at APEC on Ukraine, Iran and trade; "
+     "Trump also meets Putin alone.", "REUTERS · AP"),
+    ("2", "EUROPE", "THE HAGUE · LAW",
+     "World Court rules on Myanmar's Rohingya case",
+     "The ICJ's final judgment in The Gambia's genocide case covers the 2017 "
+     "crackdown that displaced 730,000.", "ICJ · REUTERS"),
+    ("3", "THE AMERICAS", "MIAMI · GAMES",
+     "GTA VI goes on sale worldwide",
+     "Rockstar's Vice City sequel unlocks worldwide at midnight local time, on "
+     "PS5 and Xbox.", "AP · REUTERS"),
+]
+
+briefs = [
+    ("4", "EUROPE", "KERCH · UKRAINE", "Third bridge strike in four days",
+     "Drones cut the road link again; Russia blames Dutch missiles.", "bridge"),
+    ("5", "MIDDLE EAST", "HORMUZ · CONFLICT", "Iran widens its Gulf attacks",
+     "Brent crude holds near $92 a barrel as the attacks widen.", "missile"),
+    ("6", "MIDDLE EAST", "GAZA · CEASEFIRE", "Israeli tanks cross the line",
+     "Armour passes the Yellow Line, a rare breach of the truce.", "tank"),
+    ("7", "ASIA-PACIFIC", "DHAKA · PROTESTS", "Hasina's party shuts Bangladesh",
+     "Two killed; Yunus's ancestral home is burned.", "protest"),
+    ("8", "EUROPE", "NUUK · ARCTIC", "Denmark backs the Greenland deal",
+     "The Folketing ratifies a security pact with Washington.", "arctic"),
+    ("9", "EUROPE", "BRUSSELS · FINANCE", "EU proposes a \u20ac45bn loan",
+     "The money would keep Kyiv funded into next year.", "euro"),
+    ("10", "AFRICA", "HORN · BORDER", "Ethiopia and Eritrea mass troops",
+     "Forces gather along a frontier that has been quiet for years.", "border"),
+    ("11", "THE AMERICAS", "BOGOT\u00c1 · LABOUR", "Colombia strikes over tax bill",
+     "Unions march in Bogot\u00e1, Medell\u00edn and Cali.", "strike"),
+    ("12", "ASIA-PACIFIC", "SEOUL · EDUCATION", "551,864 sit the college exam",
+     "Flights pause and offices open late for the test.", "exam"),
+    ("13", "OCEANIA", "CANBERRA · ECONOMY", "Australia's jobless rate rises",
+     "Unemployment climbs to 4.9%, from 4.8% a month before.", "chart"),
+]
+
+also = [
+    ("14", "MIDDLE EAST", "RIYADH", "Houthi missiles fired at the capital"),
+    ("15", "THE AMERICAS", "CARACAS", "Hegseth signs a military deal"),
+    ("16", "ASIA-PACIFIC", "TOKYO", "India and Japan hold 2+2 talks"),
+    ("17", "THE AMERICAS", "WASHINGTON", "Trump frustrated with Vance on Iran"),
+    ("18", "THE AMERICAS", "NEW YORK", "Musk regrets $445m of spending"),
+    ("19", "AFRICA", "DARFUR", "Joint force repels RSF attack on Kornoi"),
+    ("20", "ASIA-PACIFIC", "DANANG", "Russian Tu-95s land in Vietnam"),
+    ("21", "EUROPE", "ANTALYA", "COP31 nears close, finance unresolved"),
+    ("22", "THE AMERICAS", "MIAMI", "Pastor guilty in Haiti murder plot"),
+    ("23", "ASIA-PACIFIC", "JAKARTA", "Rates rise as the rupiah slides"),
+    ("24", "ASIA-PACIFIC", "ISLAMABAD", "Rivals call Khan a political prisoner"),
+    ("25", "MIDDLE EAST", "JERUSALEM", "Court extends Abu Safia's detention"),
+    ("26", "THE AMERICAS", "WASHINGTON", "New bid to end Venezuelan TPS"),
+    ("27", "THE AMERICAS", "MEXICO CITY", "Measles vaccination drive begins"),
+    ("28", "THE AMERICAS", "SAN FRANCISCO", "Anthropic shares jump on debut"),
+    ("29", "AFRICA", "NAIROBI", "Drought deepens milk shortage"),
+    ("30", "ASIA-PACIFIC", "BANGKOK", "Floods displace 200,000 in the south"),
+    ("31", "WORLD", "GLOBAL", "Islam forecast to pass Christianity"),
+]
+
+counts = {k: 0 for k in ORDER}
+for _n, _r, *_ in heroes + briefs + also:
+    counts[_r] += 1
+total = sum(counts.values())
+
 # ---------------------------------------------------------------- paper, rules
 rect(0, 0, W, 9, RED)
 rect(0, 9, W, 2, INK)
 
 # ---------------------------------------------------------------- kicker
 kick = f(SEGOE_B, 9.5)
-text(38, 20, "THE WORLD · ONE DAY · ONE PAGE", kick, INK, spacing=1.5)
-text(986, 20, "TWENTY-NINE STORIES · SIX CONTINENTS", kick, GREY, anchor="ra", spacing=1.4)
+text(38, 18, "THE WORLD · ONE DAY · ONE PAGE", kick, INK, spacing=1.5)
+text(986, 18, f"{total} STORIES · SIX CONTINENTS", kick, GREY, anchor="ra", spacing=1.4)
 
 # ---------------------------------------------------------------- masthead
-text(36, 32, "THE WORLD", f(GEORGIA_B, 44), INK)
-text(986, 50, "THE DAY IN ONE IMAGE", f(SEGOE_B, 9), RED, anchor="ra", spacing=1.8)
+text(34, 26, "Thursday 19 November 2026", f(GEORGIA_B, 54), INK)
+para(38, 92, "Three leaders meet in Shenzhen  \u00b7  a court rules on Myanmar  \u00b7  "
+             "GTA VI arrives  \u00b7  the biggest IPO yet",
+     f(GEORGIA_I, 15), 960, (68, 58, 46), 1.15)
 
-text(36, 80, "THURSDAY 19 NOVEMBER 2026", f(GEORGIA_B, 46), INK)
-para(38, 138, "Everything on this page happened, or was first reported, on Thursday "
-              "19 November 2026: twenty-nine stories, six continents, one day.",
-     f(GEORGIA_I, 14.5), 900, (60, 54, 46), 1.2)
-
-rect(38, 168, 948, 2, INK)
-
-# ---------------------------------------------------------------- the day by hours
-BAND_Y = 176
-band = [
-    ("OVERNIGHT", "GTA VI unlocks in New Zealand"),
-    ("MORNING", "Trump, Xi and Putin meet in Shenzhen"),
-    ("09:00 UTC", "ICJ delivers its Rohingya judgment"),
-    ("14:30 UTC", "Anthropic opens on the Nasdaq"),
-    ("ALL DAY", "Road link on the Kerch bridge stays shut"),
-]
-bw = 948 / 5
-for i, (lab, line) in enumerate(band):
-    bx = 38 + i * bw
-    if i:
-        d.line([(bx * S, BAND_Y * S), (bx * S, (BAND_Y + 30) * S)], fill=LIGHT, width=1 * S)
-    text(bx + (10 if i else 0), BAND_Y + 1, lab, f(SEGOE_B, 7.5), RED, spacing=1.2)
-    para(bx + (10 if i else 0), BAND_Y + 13, line, f(SEGOE, 9.2), bw - 20, INK, 1.12)
+# ---------------------------------------------------------------- region tally
+REG_Y = 118
+seg = 948 / len(ORDER)
+for i, key in enumerate(ORDER):
+    x = 38 + i * seg
+    rect(x, REG_Y, seg - 4, 18, REGIONS[key])
+    lf = f(SEGOE_B, 7.2)
+    text(x + 7, REG_Y + 5, key, lf, PAPER, spacing=0.8)
+    lw = sum(lf.getlength(ch) for ch in key) / S + 0.8 * (len(key) - 1) / S
+    text(x + 13 + lw, REG_Y + 3, str(counts[key]), f(GEORGIA_B, 12), PAPER)
 
 # ---------------------------------------------------------------- hero art
-def flag_us(x, y, w, h):
-    rect(x, y, w, h, (255, 255, 255), (120, 120, 120), 0.4)
-    sh = h / 13
-    for i in range(1, 13, 2):
-        rect(x, y + i * sh, w, sh, (190, 45, 52))
-    rect(x, y, w * 0.42, sh * 7, (37, 55, 95))
-    for r in range(3):
-        for c in range(4):
-            d.ellipse([(x + 4 + c * w * 0.09) * S, (y + 5 + r * 6) * S,
-                       (x + 6 + c * w * 0.09) * S, (y + 7 + r * 6) * S], fill=(255, 255, 255))
-
-def flag_cn(x, y, w, h):
-    rect(x, y, w, h, (206, 45, 45), (150, 30, 30), 0.4)
-    cx, cy = x + 12, y + 12
-    star = []
-    for k in range(10):
-        r = 7 if k % 2 == 0 else 3
-        a = -math.pi / 2 + k * math.pi / 5
-        star.append(((cx + r * math.cos(a)) * S, (cy + r * math.sin(a)) * S))
-    d.polygon(star, fill=(250, 220, 90))
-    for (ox, oy) in [(22, 5), (27, 10), (27, 18), (22, 23)]:
-        pts = []
-        for k in range(10):
-            r = 2.6 if k % 2 == 0 else 1.2
-            a = -math.pi / 2 + k * math.pi / 5
-            pts.append(((x + ox + r * math.cos(a)) * S, (y + oy + r * math.sin(a)) * S))
-        d.polygon(pts, fill=(250, 220, 90))
-
-def flag_ru(x, y, w, h):
-    rect(x, y, w, h / 3, (250, 250, 250), (150, 150, 150), 0.3)
-    rect(x, y + h / 3, w, h / 3, (38, 62, 125))
-    rect(x, y + 2 * h / 3, w, h / 3, (190, 45, 52))
-
 def hero_summit(x, y, w, h):
     for i in range(int(h)):
         t = i / h
-        c = tuple(int(214 + (247 - 214) * t) for _ in range(3))
+        c = (int(30 + 26 * t), int(42 + 34 * t), int(66 + 42 * t))
         d.line([(x * S, (y + i) * S), ((x + w) * S, (y + i) * S)], fill=c, width=S)
-    rod = y + 10
-    d.line([((x + 26) * S, rod * S), ((x + w - 26) * S, rod * S)], fill=(60, 55, 48), width=int(1.6 * S))
-    fw, fh = 54, 30
-    for fx, fn in [(x + 30, flag_us), (x + 92, flag_cn), (x + 154, flag_ru)]:
-        d.line([(fx * S, rod * S), (fx * S, (rod + 4) * S)], fill=(60, 55, 48), width=int(1.4 * S))
-        fn(fx, rod + 4, fw, fh)
-    d.ellipse([(x + 24) * S, (y + 54) * S, (x + w - 24) * S, (y + 78) * S], fill=(70, 58, 45))
-    d.ellipse([(x + 24) * S, (y + 50) * S, (x + w - 24) * S, (y + 72) * S], fill=(116, 98, 74))
-    for cx, nm in [(x + 82, "TRUMP"), (x + 142, "XI"), (x + 200, "PUTIN")]:
-        cw = 46 if nm != "XI" else 26
-        rect(cx - cw / 2, y + 52, cw, 13, (250, 247, 239), (60, 50, 40), 0.5, 1)
-        text(cx, y + 55, nm, f(SEGOE_B, 6.4), INK, anchor="ma", spacing=0.4)
+    # floor
+    rect(x, y + h - 20, w, 20, (92, 78, 60))
+    d.line([((x) * S, (y + h - 20) * S), ((x + w) * S, (y + h - 20) * S)], fill=(60, 50, 40), width=1 * S)
+    # flags
+    fw, fh = 46, 27
+    for fx, col, band in [(x + 26, (190, 45, 52), None),
+                          (x + 96, (206, 45, 45), None),
+                          (x + 166, (250, 250, 250), (38, 62, 125))]:
+        d.line([(fx * S, (y + 8) * S), (fx * S, (y + 44) * S)], fill=(214, 208, 196), width=int(1.4 * S))
+        rect(fx, y + 8, fw, fh, col, (60, 60, 60), 0.4)
+        if col == (250, 250, 250):
+            rect(fx, y + 8 + fh / 3, fw, fh / 3, (38, 62, 125))
+            rect(fx, y + 8 + 2 * fh / 3, fw, fh / 3, (190, 45, 52))
+        elif col == (206, 45, 45):
+            cx, cy = fx + 11, y + 19
+            star = []
+            for k in range(10):
+                rr = 5.5 if k % 2 == 0 else 2.4
+                a = -math.pi / 2 + k * math.pi / 5
+                star.append(((cx + rr * math.cos(a)) * S, (cy + rr * math.sin(a)) * S))
+            d.polygon(star, fill=(250, 220, 90))
+        else:
+            rect(fx, y + 8, fw * 0.44, fh * 0.55, (37, 55, 95))
+            for r in range(2):
+                for cc in range(3):
+                    d.ellipse([(fx + 4 + cc * fw * 0.1) * S, (y + 12 + r * 6) * S,
+                               (fx + 6 + cc * fw * 0.1) * S, (y + 14 + r * 6) * S], fill=(255, 255, 255))
+    # table + microphones
+    rect(x + 18, y + h - 34, w - 36, 14, (108, 84, 58), (58, 44, 30), 0.6, 2)
+    for mx in (x + w / 2 - 26, x + w / 2, x + w / 2 + 26):
+        d.line([(mx * S, (y + h - 34) * S), (mx * S, (y + h - 44) * S)], fill=(40, 36, 32), width=int(1.6 * S))
+        d.ellipse([(mx - 3) * S, (y + h - 48) * S, (mx + 3) * S, (y + h - 42) * S], fill=(40, 36, 32))
+    text(x + w / 2, y + h - 31, "SHENZHEN", f(SEGOE_B, 6.2), (238, 226, 208), anchor="ma", spacing=1.4)
 
 def hero_court(x, y, w, h):
     for i in range(int(h)):
         t = i / h
-        c = tuple(int(216 + (243 - 216) * t) for _ in range(3))
+        c = (int(126 + 96 * t), int(166 + 70 * t), int(204 + 40 * t))
         d.line([(x * S, (y + i) * S), ((x + w) * S, (y + i) * S)], fill=c, width=S)
-    d.polygon([((x + 34) * S, (y + 40) * S), ((x + w / 2) * S, (y + 12) * S),
-               ((x + w - 34) * S, (y + 40) * S)], fill=(250, 247, 239), outline=INK)
-    d.line([((x + 34) * S, (y + 44) * S), ((x + w - 34) * S, (y + 44) * S)], fill=INK, width=2 * S)
+    rect(x, y + h - 16, w, 16, (96, 122, 82))
+    # palace
+    px, pw = x + 26, w - 52
+    d.polygon([((px) * S, (y + 44) * S), ((px + pw / 2) * S, (y + 16) * S),
+               ((px + pw) * S, (y + 44) * S)], fill=(250, 247, 239), outline=(70, 70, 70))
+    d.line([(px * S, (y + 47) * S), ((px + pw) * S, (y + 47) * S)], fill=(70, 70, 70), width=2 * S)
     for i in range(5):
-        cx = x + 50 + i * ((w - 100) / 4)
-        rect(cx - 7, y + 47, 14, 26, (250, 247, 239), INK, 1)
-        d.line([(cx * S, (y + 52) * S), (cx * S, (y + 70) * S)], fill=(190, 183, 170), width=1 * S)
-    rect(x + 38, y + 73, w - 76, 5, (250, 247, 239), INK, 1)
-    rect(x + 32, y + 78, w - 64, 5, (250, 247, 239), INK, 1)
-    sx = x + w - 52
-    d.line([(sx * S, (y + 12) * S), (sx * S, (y + 32) * S)], fill=INK, width=2 * S)
-    d.line([((sx - 13) * S, (y + 16) * S), ((sx + 13) * S, (y + 16) * S)], fill=INK, width=2 * S)
-    for dx in (-13, 13):
-        d.arc([((sx + dx - 6) * S), ((y + 16) * S), ((sx + dx + 6) * S), ((y + 26) * S)],
-              0, 180, fill=INK, width=2 * S)
+        cx = px + 12 + i * ((pw - 24) / 4)
+        rect(cx - 8, y + 50, 16, 22, (252, 250, 243), (90, 90, 90), 0.8)
+        d.line([(cx * S, (y + 55) * S), (cx * S, (y + 67) * S)], fill=(196, 190, 176), width=1 * S)
+    rect(px - 4, y + 72, pw + 8, 4, (245, 242, 232), (90, 90, 90), 0.8)
+    # scales
+    sx = x + w - 40
+    d.line([(sx * S, (y + 14) * S), (sx * S, (y + 34) * S)], fill=(60, 48, 30), width=2 * S)
+    d.line([((sx - 12) * S, (y + 18) * S), ((sx + 12) * S, (y + 18) * S)], fill=(60, 48, 30), width=2 * S)
+    for dx in (-12, 12):
+        d.arc([((sx + dx - 6) * S), ((y + 18) * S), ((sx + dx + 6) * S), ((y + 28) * S)],
+              0, 180, fill=(188, 146, 44), width=2 * S)
 
 def hero_city(x, y, w, h):
     for i in range(int(h)):
         t = i / h
-        c = (int(46 + 150 * t), int(32 + 60 * t), int(54 + 40 * t))
+        c = (int(58 + 190 * t), int(34 + 120 * t), int(70 + 70 * t))
         d.line([(x * S, (y + i) * S), ((x + w) * S, (y + i) * S)], fill=c, width=S)
-    d.ellipse([(x + w - 84) * S, (y + 12) * S, (x + w - 26) * S, (y + 70) * S], fill=(247, 176, 84))
+    d.ellipse([(x + w - 74) * S, (y + 8) * S, (x + w - 20) * S, (y + 62) * S], fill=(250, 196, 120))
     random.seed(19)
     bx = x
     while bx < x + w:
-        bwid = random.choice([16, 22, 28, 34])
-        bhei = random.choice([22, 32, 42, 52])
-        top = y + h - 14 - bhei
-        d.rectangle([bx * S, top * S, (bx + bwid) * S, (y + h - 14) * S],
-                    fill=(28, 22, 34))
-        for wy in range(int(top) + 6, int(y + h - 20), 9):
-            for wx in range(int(bx) + 4, int(bx + bwid) - 3, 8):
-                if random.random() < 0.5:
-                    d.rectangle([wx * S, wy * S, (wx + 3) * S, (wy + 4) * S], fill=(240, 196, 110))
+        bwid = random.choice([15, 20, 26, 32])
+        bhei = random.choice([20, 30, 40, 50])
+        top = y + h - 16 - bhei
+        d.rectangle([bx * S, top * S, (bx + bwid) * S, (y + h - 16) * S], fill=(46, 30, 52))
+        for wy in range(int(top) + 5, int(y + h - 22), 8):
+            for wx in range(int(bx) + 3, int(bx + bwid) - 2, 7):
+                if random.random() < 0.55:
+                    d.rectangle([wx * S, wy * S, (wx + 3) * S, (wy + 4) * S], fill=(248, 198, 112))
         bx += bwid + random.choice([2, 4, 6])
-    rect(x, y + h - 14, w, 14, (18, 16, 24))
-    text(x + 10, y + 5, "VICE CITY", f(GEORGIA_B, 10), (250, 230, 190), spacing=1.6)
+    rect(x, y + h - 16, w, 16, (36, 22, 40))
+    # palms
+    for px in (x + 22, x + w - 30):
+        d.line([(px * S, (y + h - 16) * S), (px * S, (y + h - 44) * S)], fill=(38, 24, 34), width=2 * S)
+        for a in (-1.9, -1.2, -0.5, 0.3):
+            d.line([(px * S, (y + h - 44) * S), ((px + 12 * math.cos(a)) * S, (y + h - 44 + 9 * math.sin(a)) * S)],
+                   fill=(38, 24, 34), width=2 * S)
+    # neon VI
+    text(x + w - 16, y + 10, "VI", f(GEORGIA_B, 22), (255, 120, 150), anchor="ra", spacing=1.0)
 
 # ---------------------------------------------------------------- leads
-HERO_Y, HERO_H = 212, 202
+HERO_Y, HERO_H = 146, 212
 HW3 = (948 - 24) / 3
-heroes = [
-    ("1", "ASIA · SUMMIT", "Trump, Xi and Putin meet in a first three-way summit",
-     "The nuclear powers sit down at APEC in Shenzhen on Ukraine, Iran and trade. "
-     "Trump also meets Putin alone.", hero_summit),
-    ("2", "EUROPE · LAW", "World Court rules on Myanmar's Rohingya case",
-     "The ICJ delivers its final judgment in The Gambia's genocide case over the 2017 "
-     "crackdown that displaced 730,000.", hero_court),
-    ("3", "AMERICAS · GAMES", "GTA VI ends a 13-year wait",
-     "Rockstar's Vice City sequel unlocks worldwide, ending a 13-year wait for the series.",
-     hero_city),
-]
-for i, (num, cat, head, body, art) in enumerate(heroes):
+arts = [hero_summit, hero_court, hero_city]
+for i, (num, region, cat, head, body, src) in enumerate(heroes):
     hx = 38 + i * (HW3 + 12)
     rect(hx, HERO_Y, HW3, HERO_H, (250, 247, 239), (150, 142, 128), 0.8)
-    art(hx + 1, HERO_Y + 1, HW3 - 2, 82)
-    rect(hx, HERO_Y + 82, HW3, 2, RED)
-    text(hx + 12, HERO_Y + 90, num, f(GEORGIA_B, 15), RED)
-    text(hx + 28, HERO_Y + 94, cat, f(SEGOE_B, 7.6), GREY, spacing=1.2)
-    hf = f(NARROW_B, 23)
-    hy = HERO_Y + 114
+    arts[i](hx + 1, HERO_Y + 1, HW3 - 2, 74)
+    rect(hx, HERO_Y + 74, HW3, 2.5, REGIONS[region])
+    text(hx + 12, HERO_Y + 82, num, f(GEORGIA_B, 13), REGIONS[region])
+    text(hx + 27, HERO_Y + 85, cat, f(SEGOE_B, 7.0), REGIONS[region], spacing=1.0)
+    text(hx + HW3 - 12, HERO_Y + 85, src, f(SEGOE_B, 6.0), GREY, anchor="ra", spacing=0.5)
+    hf = f(GEORGIA_B, 21)
+    hy = HERO_Y + 104
     for ln in wrap(head, hf, HW3 - 24):
         text(hx + 12, hy, ln, hf, INK)
-        hy += 24
-    para(hx + 12, hy + 2, body, f(SEGOE, 9.8), HW3 - 24, (56, 50, 43), 1.16)
+        hy += 21.5
+    para(hx + 12, hy + 3, body, f(SEGOE, 9.4), HW3 - 24, (58, 52, 45), 1.16)
 
 # ---------------------------------------------------------------- figures
-FIG_Y = 422
+FIG_Y = 366
 figures = [
-    ("$81.3bn", "raised by Anthropic, the largest IPO on record"),
-    ("47,000", "evacuated as Cyclone Akvan nears Odisha"),
-    ("551,864", "sitting Korea's college entrance exam"),
-    ("4.9%", "Australia's unemployment rate, up from 4.8%"),
-    ("730,000", "Rohingya displaced by the 2017 crackdown"),
+    ("$81.3bn", "raised by Anthropic, the largest IPO on record", GREEN),
+    ("47,000", "evacuated as Cyclone Akvan nears Odisha", GOLD),
+    ("551,864", "sitting Korea's college entrance exam", RED),
+    ("4.9%", "Australia's unemployment rate, up from 4.8%", TEAL),
+    ("$92", "a barrel of Brent crude, as the Gulf attacks widen", GOLD),
+    ("730,000", "Rohingya displaced by the 2017 crackdown", BLUE),
 ]
-rect(38, FIG_Y, 948, 42, INK)
-fw = 948 / 5
-for i, (big, small) in enumerate(figures):
+rect(38, FIG_Y, 948, 40, INK)
+fw = 948 / 6
+for i, (big, small, col) in enumerate(figures):
     fx = 38 + i * fw
     if i:
-        d.line([(fx * S, (FIG_Y + 6) * S), (fx * S, (FIG_Y + 36) * S)], fill=(90, 84, 76), width=1 * S)
-    text(fx + 10, FIG_Y + 3, big, f(GEORGIA_B, 20), (250, 232, 214))
-    para(fx + 10, FIG_Y + 26, small, f(SEGOE, 7.8), fw - 20, (200, 192, 180), 1.05)
+        d.line([(fx * S, (FIG_Y + 5) * S), (fx * S, (FIG_Y + 35) * S)], fill=(86, 80, 72), width=1 * S)
+    text(fx + 9, FIG_Y + 3, big, f(GEORGIA_B, 17.5), (250, 232, 214))
+    para(fx + 9, FIG_Y + 24, small, f(SEGOE, 7.0), fw - 18, (198, 190, 178), 1.05)
 
-# ---------------------------------------------------------------- briefs 4-11
-def icon(kind, x, y, s=32):
-    """Draw a 32-unit icon at (x, y)."""
+# ---------------------------------------------------------------- briefs 4-13
+def icon(kind, x, y):
+    """Draw a 30-unit icon at (x, y)."""
     col = INK
     if kind == "bridge":
-        d.line([(x * S, (y + 21) * S), ((x + 12) * S, (y + 21) * S)], fill=col, width=2 * S)
-        d.line([((x + 20) * S, (y + 21) * S), ((x + 32) * S, (y + 21) * S)], fill=col, width=2 * S)
-        for px in (x + 4, x + 28):
-            d.line([(px * S, (y + 21) * S), (px * S, (y + 31) * S)], fill=col, width=1 * S)
-        for tx in (x + 7, x + 10, x + 22, x + 25):
-            d.line([(tx * S, (y + 21) * S), (tx * S, (y + 15) * S)], fill=col, width=1 * S)
-        d.line([((x + 5) * S, (y + 15) * S), ((x + 12) * S, (y + 15) * S)], fill=col, width=1 * S)
-        d.line([((x + 20) * S, (y + 15) * S), ((x + 27) * S, (y + 15) * S)], fill=col, width=1 * S)
-        d.polygon([((x + 16) * S, (y + 5) * S), ((x + 20) * S, (y + 13) * S), ((x + 17) * S, (y + 14) * S),
-                   ((x + 20) * S, (y + 21) * S), ((x + 13) * S, (y + 13) * S), ((x + 16) * S, (y + 13) * S)],
+        d.line([(x * S, (y + 19) * S), ((x + 11) * S, (y + 19) * S)], fill=col, width=2 * S)
+        d.line([((x + 19) * S, (y + 19) * S), ((x + 30) * S, (y + 19) * S)], fill=col, width=2 * S)
+        for px in (x + 3, x + 26):
+            d.line([(px * S, (y + 19) * S), (px * S, (y + 28) * S)], fill=col, width=1 * S)
+        for tx in (x + 6, x + 9, x + 21, x + 24):
+            d.line([(tx * S, (y + 19) * S), (tx * S, (y + 13) * S)], fill=col, width=1 * S)
+        d.line([((x + 4) * S, (y + 13) * S), ((x + 11) * S, (y + 13) * S)], fill=col, width=1 * S)
+        d.line([((x + 19) * S, (y + 13) * S), ((x + 26) * S, (y + 13) * S)], fill=col, width=1 * S)
+        d.polygon([((x + 15) * S, (y + 4) * S), ((x + 19) * S, (y + 12) * S), ((x + 16) * S, (y + 13) * S),
+                   ((x + 19) * S, (y + 19) * S), ((x + 12) * S, (y + 12) * S), ((x + 15) * S, (y + 12) * S)],
                   fill=RED)
     elif kind == "missile":
-        d.polygon([((x + 24) * S, (y + 3) * S), ((x + 29) * S, (y + 8) * S), ((x + 9) * S, (y + 26) * S),
-                   ((x + 5) * S, (y + 22) * S)], fill=col)
-        d.polygon([((x + 5) * S, (y + 22) * S), ((x + 1) * S, (y + 29) * S), ((x + 6) * S, (y + 28) * S),
-                   ((x + 9) * S, (y + 26) * S)], fill=RED)
-        d.arc([(x + 7) * S, (y + 10) * S, (x + 28) * S, (y + 31) * S], 180, 330, fill=col, width=2 * S)
+        d.polygon([((x + 22) * S, (y + 3) * S), ((x + 27) * S, (y + 8) * S), ((x + 8) * S, (y + 24) * S),
+                   ((x + 4) * S, (y + 20) * S)], fill=col)
+        d.polygon([((x + 4) * S, (y + 20) * S), ((x + 1) * S, (y + 27) * S), ((x + 6) * S, (y + 26) * S),
+                   ((x + 8) * S, (y + 24) * S)], fill=RED)
+        d.arc([(x + 7) * S, (y + 9) * S, (x + 27) * S, (y + 29) * S], 180, 330, fill=col, width=2 * S)
     elif kind == "tank":
-        rect(x + 2, y + 19, 27, 8, col)
-        rect(x + 6, y + 13, 13, 7, col)
-        d.line([((x + 19) * S, (y + 16) * S), ((x + 31) * S, (y + 12) * S)], fill=col, width=2 * S)
-        for wx in (x + 8, x + 16, x + 24):
-            d.ellipse([(wx - 2) * S, (y + 25) * S, (wx + 4) * S, (y + 31) * S], fill=PAPER)
+        rect(x + 2, y + 18, 26, 8, col)
+        rect(x + 6, y + 12, 12, 6, col)
+        d.line([((x + 18) * S, (y + 15) * S), ((x + 30) * S, (y + 11) * S)], fill=col, width=2 * S)
+        for wx in (x + 7, x + 15, x + 23):
+            d.ellipse([(wx - 2) * S, (y + 24) * S, (wx + 4) * S, (y + 30) * S], fill=(238, 232, 220))
     elif kind == "protest":
         d.ellipse([(x + 4) * S, (y + 5) * S, (x + 12) * S, (y + 13) * S], fill=col)
-        d.line([((x + 8) * S, (y + 13) * S), ((x + 8) * S, (y + 29) * S)], fill=col, width=2 * S)
-        d.line([((x + 8) * S, (y + 19) * S), ((x + 1) * S, (y + 12) * S)], fill=col, width=1 * S)
-        d.line([((x + 8) * S, (y + 19) * S), ((x + 15) * S, (y + 11) * S)], fill=col, width=1 * S)
-        d.line([((x + 17) * S, (y + 31) * S), ((x + 17) * S, (y + 11) * S)], fill=col, width=1 * S)
-        d.polygon([((x + 18) * S, (y + 11) * S), ((x + 32) * S, (y + 15) * S), ((x + 18) * S, (y + 21) * S)], fill=RED)
+        d.line([((x + 8) * S, (y + 13) * S), ((x + 8) * S, (y + 28) * S)], fill=col, width=2 * S)
+        d.line([((x + 8) * S, (y + 18) * S), ((x + 1) * S, (y + 12) * S)], fill=col, width=1 * S)
+        d.line([((x + 8) * S, (y + 18) * S), ((x + 15) * S, (y + 11) * S)], fill=col, width=1 * S)
+        d.line([((x + 17) * S, (y + 30) * S), ((x + 17) * S, (y + 11) * S)], fill=col, width=1 * S)
+        d.polygon([((x + 18) * S, (y + 11) * S), ((x + 31) * S, (y + 15) * S), ((x + 18) * S, (y + 20) * S)], fill=RED)
     elif kind == "arctic":
-        d.polygon([((x + 3) * S, (y + 29) * S), ((x + 13) * S, (y + 9) * S), ((x + 19) * S, (y + 21) * S),
-                   ((x + 25) * S, (y + 13) * S), ((x + 32) * S, (y + 29) * S)], fill=col)
-        d.arc([(x + 9) * S, (y + 1) * S, (x + 27) * S, (y + 17) * S], 200, 340, fill=BLUE, width=2 * S)
+        d.polygon([((x + 3) * S, (y + 28) * S), ((x + 12) * S, (y + 9) * S), ((x + 18) * S, (y + 20) * S),
+                   ((x + 24) * S, (y + 13) * S), ((x + 31) * S, (y + 28) * S)], fill=col)
+        d.arc([(x + 8) * S, (y + 1) * S, (x + 26) * S, (y + 16) * S], 200, 340, fill=BLUE, width=2 * S)
     elif kind == "euro":
-        text(x + 3, y + 1, "\u20ac", f(GEORGIA_B, 25), INK)
-        d.line([((x + 1) * S, (y + 12) * S), ((x + 22) * S, (y + 12) * S)], fill=RED, width=2 * S)
-        d.line([((x + 1) * S, (y + 18) * S), ((x + 22) * S, (y + 18) * S)], fill=RED, width=2 * S)
+        text(x + 2, y + 1, "\u20ac", f(GEORGIA_B, 24), INK)
+        d.line([((x + 1) * S, (y + 12) * S), ((x + 21) * S, (y + 12) * S)], fill=RED, width=2 * S)
+        d.line([((x + 1) * S, (y + 18) * S), ((x + 21) * S, (y + 18) * S)], fill=RED, width=2 * S)
     elif kind == "border":
-        d.line([((x + 16) * S, (y + 3) * S), ((x + 16) * S, (y + 31) * S)], fill=col, width=2 * S)
+        d.line([((x + 15) * S, (y + 3) * S), ((x + 15) * S, (y + 30) * S)], fill=col, width=2 * S)
         for yy in (y + 9, y + 18, y + 27):
-            d.line([((x + 4) * S, yy * S), ((x + 28) * S, yy * S)], fill=col, width=1 * S)
+            d.line([((x + 4) * S, yy * S), ((x + 27) * S, yy * S)], fill=col, width=1 * S)
         d.polygon([((x + 3) * S, (y + 6) * S), ((x + 8) * S, (y + 11) * S), ((x + 3) * S, (y + 16) * S)], fill=RED)
-        d.polygon([((x + 30) * S, (y + 16) * S), ((x + 25) * S, (y + 21) * S), ((x + 30) * S, (y + 26) * S)], fill=RED)
+        d.polygon([((x + 29) * S, (y + 16) * S), ((x + 24) * S, (y + 21) * S), ((x + 29) * S, (y + 26) * S)], fill=RED)
     elif kind == "strike":
         d.polygon([((x + 8) * S, (y + 17) * S), ((x + 14) * S, (y + 5) * S), ((x + 17) * S, (y + 7) * S),
                    ((x + 14) * S, (y + 17) * S), ((x + 20) * S, (y + 6) * S), ((x + 23) * S, (y + 8) * S),
                    ((x + 18) * S, (y + 19) * S), ((x + 24) * S, (y + 11) * S), ((x + 27) * S, (y + 13) * S),
-                   ((x + 20) * S, (y + 23) * S), ((x + 20) * S, (y + 31) * S), ((x + 8) * S, (y + 31) * S)], fill=col)
-        d.line([((x + 8) * S, (y + 17) * S), ((x + 3) * S, (y + 25) * S)], fill=RED, width=2 * S)
+                   ((x + 20) * S, (y + 23) * S), ((x + 20) * S, (y + 30) * S), ((x + 8) * S, (y + 30) * S)], fill=col)
+        d.line([((x + 8) * S, (y + 17) * S), ((x + 3) * S, (y + 24) * S)], fill=RED, width=2 * S)
+    elif kind == "exam":
+        rect(x + 4, y + 2, 19, 26, (252, 250, 243), col, 0.9)
+        for yy in (y + 8, y + 14, y + 20):
+            d.line([((x + 8) * S, yy * S), ((x + 19) * S, yy * S)], fill=(150, 143, 130), width=1 * S)
+        d.line([((x + 21) * S, (y + 24) * S), ((x + 29) * S, (y + 15) * S)], fill=RED, width=2 * S)
+        d.polygon([((x + 21) * S, (y + 24) * S), ((x + 22) * S, (y + 29) * S), ((x + 19) * S, (y + 27) * S)], fill=RED)
+    elif kind == "chart":
+        for i, hh in enumerate([7, 12, 18, 24, 30]):
+            d.rectangle([(x + 2 + i * 5.5) * S, (y + 30 - hh) * S, (x + 6 + i * 5.5) * S, (y + 30) * S], fill=col)
+        d.line([((x + 1) * S, (y + 25) * S), ((x + 30) * S, (y + 3) * S)], fill=RED, width=2 * S)
+        d.polygon([((x + 30) * S, (y + 3) * S), ((x + 23) * S, (y + 5) * S), ((x + 28) * S, (y + 10) * S)], fill=RED)
 
-briefs = [
-    ("4", "EUROPE", "Third Kerch strike in four days", "Drones cut the bridge's road link again.", "bridge"),
-    ("5", "MIDDLE EAST", "Iran widens its Gulf attacks", "Brent crude holds near $92 a barrel.", "missile"),
-    ("6", "MIDDLE EAST", "Israeli tanks cross the line", "Forces pass the Gaza ceasefire boundary.", "tank"),
-    ("7", "SOUTH ASIA", "Hasina's party shuts Bangladesh", "Protests; Yunus's ancestral home burned.", "protest"),
-    ("8", "ARCTIC", "Denmark backs the Greenland deal", "The Folketing ratifies a US security pact.", "arctic"),
-    ("9", "EUROPE", "EU proposes a \u20ac45bn loan", "Brussels moves to fund Kyiv into next year.", "euro"),
-    ("10", "AFRICA", "Ethiopia and Eritrea mass troops", "Forces gather along their shared border.", "border"),
-    ("11", "AMERICAS", "Colombia strikes over tax bill", "Unions march in Bogot\u00e1, Medell\u00edn, Cali.", "strike"),
-]
-
-BRIEF_Y = 472
-BW, BH, BG = (948 - 30) / 4, 108, 10
-for i, (num, cat, head, det, kind) in enumerate(briefs):
-    bx = 38 + (i % 4) * (BW + BG)
-    by = BRIEF_Y + (i // 4) * (BH + 10)
-    rect(bx, by, BW, BH, TILE)
-    rect(bx, by, BW, 2, RED)
-    text(bx + 9, by + 7, num, f(GEORGIA_B, 12), RED)
-    text(bx + 30, by + 10, cat, f(SEGOE_B, 6.9), GREY, spacing=0.9)
-    icon(kind, bx + 9, by + 26)
-    hf = f(NARROW_B, 17)
-    hy = by + 27
-    for ln in wrap(head, hf, BW - 58):
-        text(bx + 48, hy, ln, hf, INK)
-        hy += 17.5
-    para(bx + 48, hy + 4, det, f(SEGOE, 9.0), BW - 56, (78, 70, 60), 1.12)
+BRIEF_Y = 414
+BW, BH, BG = (948 - 40) / 5, 112, 10
+for i, (num, region, cat, head, det, kind) in enumerate(briefs):
+    bx = 38 + (i % 5) * (BW + BG)
+    by = BRIEF_Y + (i // 5) * (BH + 10)
+    rect(bx, by, BW, BH, (250, 247, 239), (170, 162, 148), 0.7)
+    rect(bx, by, BW, 34, tint(REGIONS[region], 0.80))
+    rect(bx, by + 34, BW, 1, REGIONS[region])
+    text(bx + BW - 7, by + 4, num, f(GEORGIA_B, 11.5), REGIONS[region], anchor="ra")
+    icon(kind, bx + 8, by + 2)
+    text(bx + 8, by + 39, cat, f(SEGOE_B, 6.2), REGIONS[region], spacing=0.9)
+    hf = f(GEORGIA_B, 14.5)
+    hy = by + 50
+    for ln in wrap(head, hf, BW - 16):
+        text(bx + 8, hy, ln, hf, INK)
+        hy += 15
+    para(bx + 8, hy + 2, det, f(SEGOE, 8.0), BW - 14, (78, 70, 60), 1.1)
 
 # ---------------------------------------------------------------- map + also list
 _here = os.path.dirname(os.path.abspath(__file__))
@@ -380,98 +444,93 @@ def _on_land(lon, lat):
             return True
     return False
 
-MX, MY, MW, MH = 38, 708, 448, 210
+MX, MY, MW, MH = 38, 650, 448, 240
 LAT_T, LAT_B = 80.0, -56.0
 
 def _px(lon):
     return MX + (lon + 180) / 360 * MW
 
 def _py(lat):
-    return MY + (LAT_T - lat) / (LAT_T - LAT_B) * MH
+    return MY + (LAT_T - lat) / (LAT_T - LAT_B) * (MH - 16)
 
-rect(MX, MY, MW, MH - 14, SEA)
+rect(MX, MY, MW, MH - 16, SEA)
 for lon in range(-180, 181, 30):
-    d.line([(_px(lon) * S, MY * S), (_px(lon) * S, (MY + MH - 14) * S)], fill=(206, 217, 225), width=1 * S)
+    d.line([(_px(lon) * S, MY * S), (_px(lon) * S, (MY + MH - 16) * S)], fill=(206, 217, 225), width=1 * S)
 for lat in range(-60, 81, 30):
     d.line([(MX * S, _py(lat) * S), ((MX + MW) * S, _py(lat) * S)], fill=(206, 217, 225), width=1 * S)
 
 STEP = 5
-for gy in range(3, MH - 16, STEP):
-    lat = LAT_T - (gy + 0.5) / (MH - 14) * (LAT_T - LAT_B)
+for gy in range(3, MH - 19, STEP):
+    lat = LAT_T - (gy + 0.5) / (MH - 16) * (LAT_T - LAT_B)
     for gx in range(3, MW - 2, STEP):
         lon = (gx + 0.5) / MW * 360 - 180
         if _on_land(lon, lat):
-            r = 1.15
+            r = 1.1
             d.ellipse([(MX + gx - r) * S, (MY + gy - r) * S, (MX + gx + r) * S, (MY + gy + r) * S],
-                      fill=(64, 74, 86))
+                      fill=(74, 82, 92))
 
 pins = [
-    ("1", 114.06, 22.54), ("2", 4.3, 52.1), ("3", -80.2, 25.8), ("4", 36.5, 45.3),
-    ("5", 56.5, 26.5), ("6", 34.4, 31.4), ("7", 90.4, 23.8), ("8", -51.7, 64.2),
+    ("1", 114.06, 22.54, "ASIA-PACIFIC"), ("2", 4.3, 52.1, "EUROPE"),
+    ("3", -80.2, 25.8, "THE AMERICAS"), ("4", 36.5, 45.3, "EUROPE"),
+    ("5", 56.5, 26.5, "MIDDLE EAST"), ("6", 34.4, 31.4, "MIDDLE EAST"),
+    ("7", 90.4, 23.8, "ASIA-PACIFIC"), ("8", -51.7, 64.2, "EUROPE"),
+    ("9", 4.4, 50.8, "EUROPE"), ("10", 37.9, 14.9, "AFRICA"),
+    ("11", -74.1, 4.7, "THE AMERICAS"), ("12", 127.0, 37.5, "ASIA-PACIFIC"),
+    ("13", 149.1, -35.3, "OCEANIA"),
 ]
 fpin = f(SEGOE_B, 8)
-for nm, lon, lat in pins:
+placed = []
+for nm, lon, lat, region in pins:
     x, y = _px(lon), _py(lat)
+    ty = y
+    for (ox, oy) in placed:
+        while abs(x - ox) < 14 and abs(y - oy) < 14:
+            y += 15
+    if abs(y - ty) > 1:
+        d.line([(x * S, ty * S), (x * S, y * S)], fill=REGIONS[region], width=1 * S)
     d.ellipse([(x - 7) * S, (y - 7) * S, (x + 7) * S, (y + 7) * S],
-              fill=PAPER, outline=RED, width=int(1.6 * S))
-    text(x, y, nm, fpin, RED, anchor="mm")
+              fill=REGIONS[region], outline=PAPER, width=int(1.2 * S))
+    text(x, y, nm, fpin, PAPER, anchor="mm")
+    placed.append((x, y))
 
-text(MX, MY + MH - 11, "PINS MARK STORIES 1\u20138  ·  DOTS ARE LAND", f(SEGOE_B, 6.8), GREY, spacing=0.8)
+text(MX + 4, MY + MH - 13, "NUMBERS MARK STORIES 1\u201313  ·  GREY DOTS ARE LAND",
+     f(SEGOE_B, 6.6), GREY, spacing=0.7)
 
-AX, AY, AW = 500, 708, 486
+AX, AY, AW = 500, 650, 486
 rect(AX, AY, AW, 22, INK)
-text(AX + 8, AY + 6, "ALSO ON THURSDAY 19 NOVEMBER", f(SEGOE_B, 8.6), PAPER, spacing=1.4)
-text(AX + AW - 8, AY + 6, "12\u201329", f(SEGOE_B, 8.6), (230, 210, 190), anchor="ra", spacing=1.2)
+text(AX + 8, AY + 6, "ALSO ON THURSDAY 19 NOVEMBER", f(SEGOE_B, 8.4), PAPER, spacing=1.3)
+text(AX + AW - 8, AY + 6, "14\u201331", f(SEGOE_B, 8.4), (230, 210, 190), anchor="ra", spacing=1.1)
 
-also = [
-    ("12", "RIYADH", "Houthi missiles fired at the capital"),
-    ("13", "CARACAS", "Hegseth signs a military deal"),
-    ("14", "TOKYO", "India and Japan hold 2+2 talks"),
-    ("15", "WASHINGTON", "Trump frustrated with Vance on Iran"),
-    ("16", "NEW YORK", "Musk regrets $445m of spending"),
-    ("17", "DARFUR", "Joint force repels RSF attack on Kornoi"),
-    ("18", "DANANG", "Russian Tu-95s land in Vietnam"),
-    ("19", "ANTALYA", "COP31 nears close, finance unresolved"),
-    ("20", "MIAMI", "Pastor guilty in Haiti murder plot"),
-    ("21", "JAKARTA", "Rates rise as the rupiah slides"),
-    ("22", "ISLAMABAD", "Rivals call Khan a political prisoner"),
-    ("23", "JERUSALEM", "Court extends Abu Safia's detention"),
-    ("24", "WASHINGTON", "New bid to end Venezuelan TPS"),
-    ("25", "MEXICO CITY", "Measles vaccination drive begins"),
-    ("26", "SAN FRANCISCO", "Anthropic shares jump on debut"),
-    ("27", "NAIROBI", "Drought deepens milk shortage"),
-    ("28", "BANGKOK", "Floods displace 200,000 in the south"),
-    ("29", "GLOBAL", "Islam forecast to pass Christianity"),
-]
 colw = (AW - 8) / 2
-for i, (num, place, line) in enumerate(also):
+for i, (num, region, place, line) in enumerate(also):
     col = i // 9
     row = i % 9
     x = AX + 8 + col * (colw + 4)
-    y = AY + 30 + row * 21
-    text(x, y, num, f(SEGOE_B, 7.6), RED)
-    text(x + 16, y, place + " \u2014 ", f(SEGOE_B, 7.4), INK, spacing=0.3)
-    off = 16 + f(SEGOE_B, 7.4).getlength(place + " \u2014 ") / S
-    text(x + off + 4, y, line, f(SEGOE, 9.0), (52, 47, 41))
+    y = AY + 30 + row * 23
+    d.rectangle([x * S, (y + 1) * S, (x + 2.5) * S, (y + 8) * S], fill=REGIONS[region])
+    text(x + 6, y, num, f(SEGOE_B, 7.4), RED)
+    text(x + 21, y, place + " \u2014 ", f(SEGOE_B, 7.4), INK, spacing=0.3)
+    off = 21 + f(SEGOE_B, 7.4).getlength(place + " \u2014 ") / S
+    text(x + off + 3, y, line, f(SEGOE, 9.0), (52, 47, 41))
 
 # ---------------------------------------------------------------- date check
-DY = 928
-rect(38, DY, 948, 30, None, RED, 1)
-text(46, DY + 8, "DATE CHECK", f(SEGOE_B, 7.8), RED, spacing=1.4)
-para(112, DY + 7,
+DY = 906
+rect(38, DY, 948, 34, None, RED, 1)
+text(46, DY + 10, "DATE CHECK", f(SEGOE_B, 7.8), RED, spacing=1.4)
+para(112, DY + 8,
      "First reported before Thursday, so not counted above: Fiji's drought disaster (Wed 18)  \u00b7  "
      "US measles-elimination loss (Tue 17)  \u00b7  Voyager 1 at one light-day (Wed 18)  \u00b7  "
      "Delhi schools reopening (Wed 18).",
-     f(SEGOE, 7.6), 866, (52, 47, 41), 1.12)
+     f(SEGOE, 7.4), 866, (52, 47, 41), 1.12)
 
 # ---------------------------------------------------------------- footer
-rect(38, 966, 948, 1, INK)
-para(38, 971,
+rect(38, 948, 948, 1, INK)
+para(38, 953,
      "Every story here happened, or was first reported, on Thursday 19 November 2026. "
      "Claims are attributed, not stated as fact.",
-     f(SEGOE, 7.4), 620, GREY, 1.05)
-text(986, 971, "SOURCES: REUTERS \u00b7 AP \u00b7 AFP \u00b7 BBC \u00b7 GUARDIAN \u00b7 BLOOMBERG \u00b7 AL JAZEERA \u00b7 YONHAP \u00b7 ABC \u00b7 NYT \u00b7 PEW \u00b7 ICJ",
-     f(SEGOE_B, 6.4), GREY, anchor="ra", spacing=0.4)
+     f(SEGOE, 7.2), 600, GREY, 1.05)
+text(986, 953, "SOURCES: REUTERS \u00b7 AP \u00b7 AFP \u00b7 BBC \u00b7 GUARDIAN \u00b7 BLOOMBERG \u00b7 AL JAZEERA \u00b7 YONHAP \u00b7 ABC \u00b7 NYT \u00b7 PEW \u00b7 ICJ",
+     f(SEGOE_B, 6.2), GREY, anchor="ra", spacing=0.4)
 
 # ---------------------------------------------------------------- texture + vignette
 random.seed(7)
@@ -488,4 +547,4 @@ img = Image.composite(img, dark, vig.point(lambda v: 255 - (255 - v) // 5))
 
 img = img.resize((W, H), Image.LANCZOS)
 img.save("entry.png", optimize=True)
-print("saved", img.size)
+print("saved", img.size, "stories", total)
