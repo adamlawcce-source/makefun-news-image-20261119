@@ -24,10 +24,12 @@ the world's largest faith.
 
 ## How it is made
 
-`tools/make_image.py` composes the page with Pillow from the day's headlines:
-register, flags, leader place cards, six illustrated briefs, and a ticker. The
-random seed is fixed, so two renders are byte-identical. It is rendered at 2× and
-downsampled to 1024×1024.
+`tools/make_image.py` composes the page with Pillow from the day's headlines: a
+dotted world map with six numbered datelines, a pull quote from the summit, six
+illustrated briefs, and a ticker. The map is drawn from Natural Earth's 1:110m
+land polygons (public domain); the dots are point-in-polygon samples under an
+equirectangular projection. The random seed is fixed, so two renders are
+byte-identical. It is rendered at 2× and downsampled to 1024×1024.
 
 `main.ts` publishes the committed artwork:
 
@@ -42,6 +44,7 @@ the same bytes.
 ## Sources
 
 Reporting from Reuters, AP, Bloomberg, The Guardian and Axios on 19 November 2026.
+Map data: [Natural Earth](https://www.naturalearthdata.com/), 1:110m land (public domain).
 
 ## Licence
 

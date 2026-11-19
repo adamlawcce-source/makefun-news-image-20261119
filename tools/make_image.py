@@ -83,7 +83,7 @@ kick = f(SEGOE_B, 11)
 text(40, 24, "WORLD EDITION", kick, INK, spacing=1.6)
 kd = 40 + (kick.getlength("WORLD EDITION") / S + 1.6 * 12) + 14
 text(kd, 24, "·", kick, GREY)
-text(kd + 12, 24, "EIGHT STORIES, FOUR CONTINENTS, ONE DAY", kick, GREY, spacing=1.0)
+text(kd + 12, 24, "SEVEN STORIES, FOUR CONTINENTS, ONE DAY", kick, GREY, spacing=1.0)
 text(984, 24, "THURSDAY 19 NOVEMBER 2026", kick, INK, anchor="ra", spacing=1.0)
 
 # ---------------------------------------------------------------- masthead
@@ -111,104 +111,102 @@ text(640, 273, "THE SUMMIT", f(SEGOE_B, 9), RED, spacing=1.6)
 text(640, 288, "APEC, Shenzhen · Trump also meets Putin alone", f(SEGOE, 11.5), INK)
 text(628, 316, "Kyiv strikes the Kerch bridge hours before the talks.", f(SEGOE, 11.5), GREY)
 
-# ---------------------------------------------------------------- hero
+# ---------------------------------------------------------------- hero: map
+import json, os
+
 HX, HY, HW, HH = 38, 344, 948, 236
-rect(HX, HY, HW, HH, (223, 228, 231))
-# sky gradient
-for i in range(HH):
-    t = i / HH
-    c = tuple(int(214 + (247 - 214) * t) for _ in range(3))
-    d.line([(HX * S, (HY + i) * S), ((HX + HW) * S, (HY + i) * S)], fill=c, width=S)
+MX, MY, MW, MH = HX, HY, 624, HH
+LAT_T, LAT_B = 78.0, -58.0
+SEA = (216, 226, 233)
 
-# skyline (fixed hand-tuned towers)
-random.seed(20261119)
-x = HX - 4
-sky = (176, 184, 192)
-while x < HX + HW:
-    bw = random.choice([34, 44, 54, 62, 74])
-    bh = random.choice([46, 66, 88, 104, 124, 142])
-    top = HY + 190 - bh
-    d.rectangle([x * S, top * S, (x + bw) * S, (HY + 190) * S], fill=sky)
-    if random.random() < 0.5:
-        sx = x + bw // 2
-        d.line([(sx * S, (top - 16) * S), (sx * S, top * S)], fill=sky, width=2 * S)
-    x += bw + random.choice([3, 6, 10])
-# haze band over skyline
-rect(HX, HY + 176, HW, 16, (223, 228, 231))
+_here = os.path.dirname(os.path.abspath(__file__))
+_geo = json.load(open(os.path.join(_here, "world.geojson"), encoding="utf-8"))
+_polys = []
+for _f in _geo["features"]:
+    _g = _f["geometry"]
+    _cs = _g["coordinates"]
+    if _g["type"] == "Polygon":
+        _cs = [_cs]
+    for _poly in _cs:
+        _ring = _poly[0]
+        _bx = [p[0] for p in _ring]
+        _by = [p[1] for p in _ring]
+        _polys.append((min(_bx), min(_by), max(_bx), max(_by), _poly))
 
-# summit hall floor
-d.rectangle([HX * S, (HY + 190) * S, (HX + HW) * S, (HY + HH) * S], fill=(232, 226, 214))
+def _in_ring(x, y, ring):
+    inside = False
+    j = len(ring) - 1
+    for i in range(len(ring)):
+        xi, yi = ring[i][0], ring[i][1]
+        xj, yj = ring[j][0], ring[j][1]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
 
-# flags hanging from a rod
-rod_y = HY + 18
-d.line([((HX + 300) * S, rod_y * S), ((HX + 648) * S, rod_y * S)], fill=(60, 55, 48), width=3 * S)
+def _on_land(lon, lat):
+    for (x1, y1, x2, y2, poly) in _polys:
+        if not (x1 - 1 <= lon <= x2 + 1 and y1 - 1 <= lat <= y2 + 1):
+            continue
+        if _in_ring(lon, lat, poly[0]) and not any(_in_ring(lon, lat, h) for h in poly[1:]):
+            return True
+    return False
 
-def flag_us(x, y, w, h):
-    rect(x, y, w, h, (255, 255, 255), (120, 120, 120), 0.5)
-    sh = h / 13
-    for i in range(1, 13, 2):
-        rect(x, y + i * sh, w, sh, (190, 45, 52))
-    rect(x, y, w * 0.42, sh * 7, (37, 55, 95))
-    for r in range(3):
-        for c in range(4):
-            d.ellipse([(x + 6 + c * w * 0.1) * S, (y + 6 + r * 10) * S,
-                       (x + 9 + c * w * 0.1) * S, (y + 9 + r * 10) * S], fill=(255, 255, 255))
+def _px(lon):
+    return MX + (lon + 180) / 360 * MW
 
-def flag_cn(x, y, w, h):
-    rect(x, y, w, h, (206, 45, 45), (150, 30, 30), 0.5)
-    cx, cy = x + 18, y + 17
-    star = []
-    for k in range(10):
-        r = 11 if k % 2 == 0 else 4.6
-        a = -math.pi / 2 + k * math.pi / 5
-        star.append(((cx + r * math.cos(a)) * S, (cy + r * math.sin(a)) * S))
-    d.polygon(star, fill=(250, 220, 90))
-    for (ox, oy) in [(34, 8), (42, 16), (42, 27), (34, 34)]:
-        s = 4.2
-        pts = []
-        for k in range(10):
-            r = s if k % 2 == 0 else s / 2.4
-            a = -math.pi / 2 + k * math.pi / 5
-            pts.append(((x + ox + r * math.cos(a)) * S, (y + oy + r * math.sin(a)) * S))
-        d.polygon(pts, fill=(250, 220, 90))
+def _py(lat):
+    return MY + (LAT_T - lat) / (LAT_T - LAT_B) * MH
 
-def flag_ru(x, y, w, h):
-    rect(x, y, w, h / 3, (250, 250, 250), (150, 150, 150), 0.4)
-    rect(x, y + h / 3, w, h / 3, (38, 62, 125))
-    rect(x, y + 2 * h / 3, w, h / 3, (190, 45, 52))
-    rect(x, y, w, h, None, (110, 110, 110), 0.4)
+rect(MX, MY, MW, MH, SEA)
+for lon in range(-180, 181, 30):
+    d.line([(_px(lon) * S, MY * S), (_px(lon) * S, (MY + MH) * S)], fill=(210, 221, 228), width=1 * S)
+for lat in range(-60, 79, 30):
+    d.line([(MX * S, _py(lat) * S), ((MX + MW) * S, _py(lat) * S)], fill=(210, 221, 228), width=1 * S)
 
-FW, FH = 104, 62
-for fx, fn in [(HX + 306, flag_us), (HX + 424, flag_cn), (HX + 542, flag_ru)]:
-    d.line([(fx * S, rod_y * S), (fx * S, (rod_y + 8) * S)], fill=(60, 55, 48), width=int(1.5 * S))
-    fn(fx, rod_y + 8, FW, FH)
+STEP = 5
+for gy in range(4, MH - 3, STEP):
+    lat = LAT_T - (gy + 0.5) / MH * (LAT_T - LAT_B)
+    for gx in range(4, MW - 3, STEP):
+        lon = (gx + 0.5) / MW * 360 - 180
+        if _on_land(lon, lat):
+            r = 1.4
+            d.ellipse([(MX + gx - r) * S, (MY + gy - r) * S, (MX + gx + r) * S, (MY + gy + r) * S],
+                      fill=(60, 70, 82))
 
-# negotiating table
-d.ellipse([(HX + 120) * S, (HY + 154) * S, (HX + 828) * S, (HY + 242) * S],
-          fill=(70, 58, 45))
-d.ellipse([(HX + 120) * S, (HY + 148) * S, (HX + 828) * S, (HY + 234) * S],
-          fill=(108, 90, 68))
-d.ellipse([(HX + 148) * S, (HY + 158) * S, (HX + 800) * S, (HY + 220) * S],
-          fill=(124, 105, 79))
-d.arc([(HX + 148) * S, (HY + 158) * S, (HX + 800) * S, (HY + 220) * S],
-      200, 340, fill=(150, 129, 99), width=2 * S)
+pins = [
+    ("1", -51.7, 64.2),
+    ("2", 36.5, 45.3),
+    ("3", 51.4, 35.7),
+    ("4", 90.4, 23.8),
+    ("5", 114.06, 22.54),
+    ("6", 178.4, -18.1),
+]
+fnum = f(SEGOE_B, 9.5)
+for nm, lon, lat in pins:
+    x, y = _px(lon), _py(lat)
+    d.ellipse([(x - 9) * S, (y - 9) * S, (x + 9) * S, (y + 9) * S], fill=PAPER, outline=RED, width=int(2 * S))
+    text(x, y, nm, fnum, RED, anchor="mm")
 
-# place cards
-names = [("TRUMP", 396), ("XI", 514), ("PUTIN", 632)]
-for nm, cx in names:
-    cw = 90 if nm != "XI" else 58
-    rect(cx - cw / 2, HY + 178, cw, 26, (250, 247, 239), (60, 50, 40), 0.8, 2)
-    text(cx, HY + 184, nm, f(SEGOE_B, 11), INK, anchor="ma", spacing=1.2)
+# quote panel
+PX, PY, PW, PH = HX + 636, HY, HW - 636, HH
+rect(PX, PY, PW, PH, INK)
+text(PX + PW - 44, PY + 2, "\u201d", f(GEORGIA_B, 44), RED)
+text(PX + 18, PY + 16, "THE LINE", f(SEGOE_B, 9), (230, 210, 190), spacing=1.6)
+qf = f("georgiai.ttf", 17.5)
+qy = PY + 44
+for ln in wrap("We're looking to both help with respect to the war with Russia and Ukraine.", qf, PW - 36):
+    text(PX + 18, qy, ln, qf, (247, 242, 232))
+    qy += 24
+rect(PX + 18, PY + 168, 42, 2, RED)
+text(PX + 18, PY + 178, "DONALD TRUMP", f(SEGOE_B, 9), RED, spacing=1.4)
+text(PX + 18, PY + 192, "APEC summit, Shenzhen", f(SEGOE, 10), (180, 174, 164))
 
-# microphones
-for mx in (450, 514, 578):
-    d.line([(mx * S, (HY + 236) * S), (mx * S, (HY + 206) * S)], fill=(40, 36, 30), width=2 * S)
-    d.ellipse([(mx - 5) * S, (HY + 198) * S, (mx + 5) * S, (HY + 208) * S], fill=(40, 36, 30))
-
-# hero caption / labels
-rect(HX, HY + HH, 948, 22, INK)
-text(HX + 10, HY + HH + 4, "SHENZHEN", f(SEGOE_B, 9.5), PAPER, spacing=1.6)
-text(HX + 104, HY + HH + 4, "Three leaders, one table: the war in Ukraine is the first item.", f(SEGOE, 11.5), (232, 226, 214))
+# caption bar
+rect(HX, HY + HH, HW, 22, INK)
+text(HX + 10, HY + HH + 4, "THE DAY, MAPPED", f(SEGOE_B, 9.5), PAPER, spacing=1.6)
+leg = "1 NUUK   2 KERCH   3 TEHRAN   4 DHAKA   5 SHENZHEN   6 SUVA"
+text(HX + 150, HY + HH + 4, leg, f(SEGOE_B, 9.5), (232, 226, 214), spacing=0.6)
 
 # ---------------------------------------------------------------- tiles
 TILE_Y = 632
@@ -264,15 +262,15 @@ def draw_icon(kind, x, y):
                 ((x + 38) * S, (y + 40) * S), ((x + 54) * S, (y + 48) * S)], fill=col, width=2 * S)
 
 stories = [
-    ("EUROPE", "KERCH BRIDGE CUT", "Ukraine breaks the Crimea road link with drones and Flamingo missiles; Russia blames Dutch arms.", "bridge"),
-    ("MIDDLE EAST", "IRAN: STRIKES WEIGHED", "Trump considers a joint attack with Israel, which warns of chemical weapons. Oil near $92.", "missile"),
-    ("SOUTH ASIA", "BANGLADESH SHUT DOWN", "Hasina's protests close cities; Yunus's ancestral home burned; two killed.", "protest"),
-    ("ARCTIC", "GREENLAND DEAL", "Denmark ratifies a security pact with Trump; the US plans a \"Golden Dome\" in the Arctic.", "arctic"),
-    ("MARKETS", "ANTHROPIC'S RECORD IPO", "Priced at $83 a share, the biggest listing ever; Nasdaq futures jump 2%.", "chart"),
-    ("PACIFIC", "FIJI: DROUGHT DISASTER", "An El Niño drought prompts a national state of disaster; water is rationed.", "drought"),
+    ("EUROPE", "KERCH BRIDGE CUT", "Ukraine breaks the Crimea road link with drones and Flamingo missiles; Russia blames Dutch arms.", "bridge", "KERCH, CRIMEA"),
+    ("MIDDLE EAST", "IRAN: STRIKES WEIGHED", "Trump considers a joint attack with Israel, which warns of chemical weapons. Oil near $92.", "missile", "WASHINGTON"),
+    ("SOUTH ASIA", "BANGLADESH SHUT DOWN", "Protests by Hasina's party close cities; Yunus's ancestral home burned; two killed.", "protest", "DHAKA"),
+    ("ARCTIC", "GREENLAND DEAL", "Denmark ratifies a security pact with Trump; the US plans a \"Golden Dome\" in the Arctic.", "arctic", "COPENHAGEN"),
+    ("MARKETS", "ANTHROPIC'S RECORD IPO", "Priced at $83 a share, the biggest listing ever; Nasdaq futures jump 2%.", "chart", "NEW YORK"),
+    ("PACIFIC", "FIJI: DROUGHT DISASTER", "An El Niño drought prompts a national state of disaster; water is rationed.", "drought", "SUVA"),
 ]
 
-for i, (cat, head, body, icon) in enumerate(stories):
+for i, (cat, head, body, icon, place) in enumerate(stories):
     cx = COLX[i % 3]
     cy = TILE_Y + (i // 3) * (TH + 18)
     rect(cx, cy, TW, TH, (233, 227, 215))
@@ -303,7 +301,11 @@ for i, (cat, head, body, icon) in enumerate(stories):
     for ln in hlines:
         text(tx, hy, ln, hf, INK)
         hy += hsize + 1
-    para(tx, hy + 5, body, f(SEGOE, 11.8), tw, (60, 54, 46), 1.26)
+    para(tx, hy + 6, body, f(SEGOE, 12.4), tw, (60, 54, 46), 1.28)
+    # dateline footer
+    rect(cx + 12, cy + TH - 26, TW - 24, 1, LIGHT)
+    text(cx + 12, cy + TH - 20, place, f(SEGOE_B, 8), GREY, spacing=1.2)
+    text(cx + TW - 12, cy + TH - 20, "P.%d" % (i + 2), f(SEGOE_B, 8), GREY, anchor="ra", spacing=1.2)
 
 # ---------------------------------------------------------------- bottom rule + ticker
 rect(38, 966, 948, 1, INK)
@@ -327,3 +329,5 @@ img = Image.composite(img, dark, vig.point(lambda v: 255 - (255 - v) // 4))
 img = img.resize((W, H), Image.LANCZOS)
 img.save("entry.png", optimize=True)
 print("saved", img.size)
+
+
